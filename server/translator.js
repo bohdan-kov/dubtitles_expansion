@@ -10,6 +10,12 @@ const client = new OpenAI({
 const MODEL = 'gpt-5-nano';
 const MAX_INPUT_CHARS = 4500;
 
+// gpt-5-nano occasionally drops cues from a batch. Missed cues are retried in
+// progressively smaller sub-batches (the model almost never drops a 1-3 cue
+// batch), recursing until every cue is resolved or this depth is exhausted.
+const MAX_RETRY_DEPTH = 4;
+const RETRY_BATCH_SIZE = 4;
+
 const SYSTEM_PROMPT = `You are a subtitle translator. Translate every cue to Ukrainian. Keep technical terms in English. You MUST return one item for EVERY input cue — exactly the same count and the same ids, never dropping, merging or reordering cues. Return ONLY a raw JSON object {"items":[{"id":<id>,"text":"<translation>"}]}, no explanation, no markdown.`;
 
 // Transliteration is decoupled from translation: kept-English terms are collected
@@ -129,10 +135,11 @@ async function transliterateTerms(terms) {
   return {};
 }
 
-async function translateBatch(cues, isRetry = false) {
+// One model call for a batch of cues. Returns a Map<id → translated text> of the
+// cues the model actually returned (may be missing some — the caller retries
+// those). Retries only on transport/parse failures, not on missed cues.
+async function requestTranslation(cues) {
   const userMessage = buildUserMessage(cues);
-
-  console.log(`[translator] → ${cues.length} cues [${cues[0]?.start} .. ${cues[cues.length - 1]?.end}]${isRetry ? ' [retry]' : ''}`);
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     const t = Date.now();
@@ -151,10 +158,6 @@ async function translateBatch(cues, isRetry = false) {
           { role: 'user', content: userMessage },
         ],
       };
-
-      console.log(`\n=== PROMPT (${userMessage.length} chars) ===`);
-      console.log(userMessage.substring(0, 500) + (userMessage.length > 500 ? '\n...' : ''));
-      console.log(`=== END ===\n`);
 
       const completion = await client.chat.completions.create(requestPayload);
 
@@ -177,42 +180,20 @@ async function translateBatch(cues, isRetry = false) {
       }
       if (parsed.length !== cues.length) {
         console.warn(`[translator] ⚠ count mismatch: expected ${cues.length}, got ${parsed.length} — using ID matching`);
-        if (parsed.length < cues.length * 0.5) {
-          throw new Error(`Too few items: expected ${cues.length}, got ${parsed.length}`);
-        }
       }
 
-      const byId = new Map(parsed.map(p => [String(p.id), cleanText(p.text)]));
-      const translated = cues.map(orig => ({
-        ...orig,
-        text: byId.get(String(orig.id)) ?? orig.text,
-      }));
-
-      const missed = cues.filter(c => !byId.has(String(c.id)));
-      if (missed.length) {
-        if (!isRetry) {
-          console.warn(`[translator] ⚠ ${missed.length} cues not matched by id — retrying missed separately…`);
-          try {
-            const retried = await translateBatch(missed, true);
-            const retriedById = new Map(retried.map(r => [String(r.id), cleanText(r.text)]));
-            const merged = translated.map(t => ({
-              ...t,
-              text: retriedById.has(String(t.id)) ? retriedById.get(String(t.id)) : t.text,
-            }));
-            console.log(`[translator] ← [${merged[0]?.start}] "${merged[0]?.text?.slice(0, 60)}"`);
-            console.log(`[translator] ← [${merged[merged.length - 1]?.start}] "${merged[merged.length - 1]?.text?.slice(0, 60)}"`);
-            return merged;
-          } catch (retryErr) {
-            console.warn(`[translator] ⚠ retry for missed cues failed: ${retryErr.message} — falling back to orig text`);
-          }
-        } else {
-          console.warn(`[translator] ⚠ ${missed.length} cues not matched by id — falling back to orig text`);
-        }
+      // Keep only items whose id belongs to this batch and whose text is a
+      // non-empty string, so a bogus/empty entry doesn't mask a dropped cue and
+      // block its retry.
+      const wanted = new Set(cues.map(c => String(c.id)));
+      const byId = new Map();
+      for (const p of parsed) {
+        const id = String(p?.id);
+        if (!wanted.has(id)) continue;
+        const text = cleanText(p.text);
+        if (typeof text === 'string' && text.trim()) byId.set(id, text);
       }
-
-      console.log(`[translator] ← [${translated[0]?.start}] "${translated[0]?.text?.slice(0, 60)}"`);
-      console.log(`[translator] ← [${translated[translated.length - 1]?.start}] "${translated[translated.length - 1]?.text?.slice(0, 60)}"`);
-      return translated;
+      return byId;
 
     } catch (err) {
       console.error(`[translator] ✗ attempt ${attempt} failed: ${err.message}`);
@@ -223,6 +204,53 @@ async function translateBatch(cues, isRetry = false) {
       await sleep(waitMs);
     }
   }
+}
+
+// Translate a batch and guarantee every cue comes back translated. Cues the model
+// drops are retried recursively in smaller sub-batches (RETRY_BATCH_SIZE), which
+// the model handles far more reliably, until none are missed or MAX_RETRY_DEPTH is
+// reached. Only then does a cue fall back to its original (English) text.
+//
+// `resolved` is a shared Set of ids that have received a real translation. It is
+// threaded through the recursion so the top level can accurately report the cues
+// that stayed English (a text comparison would misflag terms kept in English).
+async function translateBatch(cues, depth = 0, resolved = new Set()) {
+  console.log(`[translator] → ${cues.length} cues [${cues[0]?.start} .. ${cues[cues.length - 1]?.end}]${depth > 0 ? ` [retry d${depth}]` : ''}`);
+
+  const byId = await requestTranslation(cues);
+  const result = new Map(cues.map(orig => {
+    const id = String(orig.id);
+    const hit = byId.has(id);
+    if (hit) resolved.add(id);
+    return [id, { ...orig, text: hit ? byId.get(id) : orig.text }];
+  }));
+
+  const missed = cues.filter(c => !byId.has(String(c.id)));
+
+  if (missed.length && depth < MAX_RETRY_DEPTH) {
+    console.warn(`[translator] ⚠ ${missed.length} cue(s) missed — retrying in sub-batches (depth ${depth + 1})…`);
+    for (let i = 0; i < missed.length; i += RETRY_BATCH_SIZE) {
+      const sub = missed.slice(i, i + RETRY_BATCH_SIZE);
+      try {
+        const retried = await translateBatch(sub, depth + 1, resolved);
+        for (const r of retried) result.set(String(r.id), r);
+      } catch (retryErr) {
+        console.warn(`[translator] ⚠ retry sub-batch failed: ${retryErr.message} — keeping original for those cues`);
+      }
+    }
+  }
+
+  if (depth === 0) {
+    const stillMissed = cues.filter(c => !resolved.has(String(c.id)));
+    if (stillMissed.length) {
+      console.warn(`[translator] ⚠ ${stillMissed.length} cue(s) left untranslated after retries: ids ${stillMissed.map(c => c.id).join(', ')}`);
+    }
+  }
+
+  const translated = cues.map(c => result.get(String(c.id)));
+  console.log(`[translator] ← [${translated[0]?.start}] "${translated[0]?.text?.slice(0, 60)}"`);
+  console.log(`[translator] ← [${translated[translated.length - 1]?.start}] "${translated[translated.length - 1]?.text?.slice(0, 60)}"`);
+  return translated;
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
