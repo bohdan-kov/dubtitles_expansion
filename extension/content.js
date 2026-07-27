@@ -399,9 +399,12 @@ chrome.storage.sync.get(
   }
 );
 
+console.log('[ua-subs] Content script loaded. Site:', SITE?.id || 'not in registry');
+
 // Ask background for current translation state (handles race where .srt was
 // requested before this content script was ready to receive messages)
 chrome.runtime.sendMessage({ type: 'CONTENT_READY' }, (resp) => {
+  console.log('[ua-subs] Background state:', chrome.runtime.lastError?.message || resp?.status || 'no response');
   if (chrome.runtime.lastError || !resp) return;
   if (resp.status === 'translating') {
     ensureOverlay();

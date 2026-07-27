@@ -36,10 +36,22 @@ const SUPPORTED_SITES = [
   },
   {
     id: 'frontendmasters',
-    label: 'FrontendMasters',
-    hostPermissions: ['*://frontendmasters.com/*', '*://captions.frontendmasters.com/*'],
-    pageMatches: ['*://frontendmasters.com/*'],
-    trackUrls: ['*://captions.frontendmasters.com/*.vtt'],
+    label: 'FrontendMasters / master.dev',
+    // The platform rebranded from frontendmasters.com to master.dev (captions
+    // now come from captions.master.dev) — keep the old domains too so nothing
+    // breaks if they linger. `*://*.master.dev/*` also covers the bare domain
+    // in Chrome match-pattern semantics, but pageMatches needs the bare entry
+    // separately: siteForUrl's regex conversion requires it.
+    hostPermissions: [
+      '*://frontendmasters.com/*',
+      '*://captions.frontendmasters.com/*',
+      '*://*.master.dev/*',
+    ],
+    pageMatches: ['*://frontendmasters.com/*', '*://master.dev/*', '*://*.master.dev/*'],
+    trackUrls: [
+      '*://captions.frontendmasters.com/*.vtt',
+      '*://*.master.dev/*.vtt',
+    ],
     player: ['.video-js'],
     video: ['video.vjs-tech'],
     autoCaptions: true, // Video.js fetches the .vtt only when CC is enabled

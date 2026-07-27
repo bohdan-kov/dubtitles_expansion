@@ -136,7 +136,14 @@ async function processURL(tabId, url) {
   const state = getState(tabId);
 
   // Skip if already done or currently translating this URL
-  if (state.done.has(url) || state.inProgress.has(url)) return;
+  if (state.done.has(url)) {
+    console.log('[bg] Skip (already translated this session):', url);
+    return;
+  }
+  if (state.inProgress.has(url)) {
+    console.log('[bg] Skip (translation already in progress):', url);
+    return;
+  }
   state.inProgress.add(url);
 
   const notify = (msg) =>
@@ -144,9 +151,11 @@ async function processURL(tabId, url) {
 
   try {
     // 1. Fetch the SRT — background workers bypass CORS/mixed-content restrictions
+    console.log('[bg] Fetching track:', url);
     const srtResp = await fetch(url);
     if (!srtResp.ok) throw new Error(`SRT fetch ${srtResp.status}`);
     const rawSRT = await srtResp.text();
+    console.log(`[bg] Track fetched: ${rawSRT.length} chars, ${(rawSRT.match(/-->/g) || []).length} cues`);
 
     // 2. Skip non-English tracks
     if (!looksEnglish(rawSRT)) {
@@ -170,11 +179,16 @@ async function processURL(tabId, url) {
     notify({ type: 'TRANSLATION_START' });
 
     // 3. Send to local translation server (SSE stream)
+    console.log('[bg] POST /translate →', url);
     const transResp = await fetch('http://127.0.0.1:17382/translate', {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: rawSRT,
+    }).catch((err) => {
+      // Typical when the local server isn't running — make that explicit.
+      throw new Error(`translate server unreachable (${err.message}) — is server/index.js running?`);
     });
+    console.log('[bg] /translate response:', transResp.status);
 
     if (!transResp.ok) {
       const err = await transResp.json().catch(() => ({ error: transResp.statusText }));
@@ -225,6 +239,10 @@ async function processURL(tabId, url) {
         }
       }
     }
+
+    // The stream ended without a `result` event — the job would otherwise hang
+    // in "translating" forever with no trace. Surface it as an error.
+    throw new Error('translate stream ended without result');
 
   } catch (err) {
     state.inProgress.delete(url);
@@ -364,12 +382,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 chrome.webRequest.onBeforeRequest.addListener(
   (details) => {
-    if (details.tabId < 0) return;
+    console.log('[bg] Track request intercepted:', details.url, 'tabId=', details.tabId);
+    if (details.tabId < 0) {
+      console.log('[bg] Skip (request not tied to a tab):', details.url);
+      return;
+    }
     processURL(details.tabId, details.url);
   },
   // Track-URL patterns are derived from the site registry (sites.js).
   { urls: allTrackUrls() }
 );
+
+// If this line is the only one in the service-worker console, no subtitle
+// request matched the patterns above — check sites.js trackUrls vs the actual
+// network request on the course page.
+console.log('[bg] Service worker started. Watching track URLs:', allTrackUrls());
 
 // ── Cleanup on navigation / tab close ────────────────────────────────────────
 

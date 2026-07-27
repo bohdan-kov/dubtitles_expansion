@@ -176,7 +176,10 @@ app.post('/tts', async (req, res) => {
 app.post('/translate', async (req, res) => {
   const rawSRT = req.body;
 
+  console.log(`[server] POST /translate — body: ${typeof rawSRT === 'string' ? rawSRT.length + ' chars' : typeof rawSRT}`);
+
   if (!rawSRT || typeof rawSRT !== 'string' || rawSRT.trim().length === 0) {
+    console.warn('[server] /translate rejected: empty or non-string body');
     return res.status(400).json({ error: 'Request body must be a non-empty SRT string' });
   }
 
@@ -189,6 +192,7 @@ app.post('/translate', async (req, res) => {
   // 1. Cache hit
   const cached = readCache(rawSRT);
   if (cached) {
+    console.log('[server] /translate — cache HIT, returning stored translation');
     send('result', { srt: cached });
     return res.end();
   }
