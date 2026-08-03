@@ -8,7 +8,6 @@ import {
   Loader2,
   MicVocal,
   Rows3,
-  ServerCog,
   Trash2,
   Volume2,
 } from '@lucide/vue';
@@ -66,9 +65,6 @@ const { settings, update } = useSettings();
 const { state: health, check: recheckServer } = useServerHealth(SERVER_HEALTH);
 const { jobs, activeCount, hasFinished, clearFinished } = useJobs();
 const { theme, setTheme } = useTheme();
-
-const version = chrome.runtime.getManifest().version;
-const serverLabel = SERVER_ORIGIN.replace(/^https?:\/\//, '').replace('127.0.0.1', 'localhost');
 
 const healthLabel = computed(
   () => ({ checking: 'перевірка', online: 'онлайн', offline: 'офлайн' })[health.value]
@@ -269,17 +265,5 @@ const jobsListClass = computed(() => (jobs.value.length > 3 ? 'h-[168px]' : ''))
         Немає активних завантажень
       </p>
     </section>
-
-    <Separator />
-
-    <footer
-      class="text-muted-foreground flex items-center justify-between px-3.5 py-2 text-[0.7rem]"
-    >
-      <span class="inline-flex items-center gap-1.5">
-        <ServerCog class="size-3" />
-        {{ serverLabel }}
-      </span>
-      <span class="tabular-nums">v{{ version }}</span>
-    </footer>
   </div>
 </template>
