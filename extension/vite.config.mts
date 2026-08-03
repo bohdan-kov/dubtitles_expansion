@@ -40,7 +40,11 @@ function buildExtensionScripts(isDev: boolean): Plugin {
         copyFileSync(resolve(root, file), dest);
       }
       for (const dir of STATIC_DIRS) {
-        cpSync(resolve(root, dir), resolve(outDir, dir), { recursive: true });
+        cpSync(resolve(root, dir), resolve(outDir, dir), {
+          recursive: true,
+          // The .svg sources stay in the repo; only the rasterised PNGs ship.
+          filter: (src) => !src.endsWith('.svg'),
+        });
       }
 
       await Promise.all(

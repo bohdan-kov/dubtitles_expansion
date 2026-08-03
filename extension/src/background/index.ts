@@ -1,4 +1,10 @@
 import { allTrackUrls } from '@/shared/sites';
+import type { ResolvedTheme } from '@/shared/theme';
+import {
+  actionIconPaths,
+  DEFAULT_RESOLVED_THEME,
+  THEME_RESOLVED_STORAGE_KEY,
+} from '@/shared/theme';
 import type {
   ContentReadyResponse,
   Job,
@@ -458,6 +464,25 @@ chrome.webRequest.onBeforeRequest.addListener(
 // request matched the patterns above — check shared/sites.ts trackUrls vs the
 // actual network request on the course page.
 console.log('[bg] Service worker started. Watching track URLs:', allTrackUrls());
+
+// ── Toolbar icon follows the popup's theme ───────────────────────────────────
+// The mark sits on the theme's --primary surface, so it flips with the popup.
+// The popup owns the preference and publishes the resolved value; writing it
+// wakes this worker, which repaints the icon.
+
+function applyActionIcon(theme: ResolvedTheme): void {
+  chrome.action.setIcon({ path: actionIconPaths(theme) });
+}
+
+chrome.storage.local.get({ [THEME_RESOLVED_STORAGE_KEY]: DEFAULT_RESOLVED_THEME }, (stored) => {
+  applyActionIcon((stored[THEME_RESOLVED_STORAGE_KEY] as ResolvedTheme) ?? DEFAULT_RESOLVED_THEME);
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local') return;
+  const next = changes[THEME_RESOLVED_STORAGE_KEY]?.newValue as ResolvedTheme | undefined;
+  if (next) applyActionIcon(next);
+});
 
 // ── Cleanup on navigation / tab close ────────────────────────────────────────
 

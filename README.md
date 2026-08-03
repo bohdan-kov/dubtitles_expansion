@@ -60,8 +60,8 @@ Turn on **Озвучення** in the popup to add the neural Ukrainian voice-ov
 
 > **FrontendMasters note:** captions are fetched from `captions.frontendmasters.com`
 > only once CC is enabled. The extension enables it automatically (in `hidden`
-> mode, so no English text shows) via `inject.js` — a MAIN-world script for
-> Video.js sites flagged `autoCaptions` in `sites.js`. No manual CC needed.
+> mode, so no English text shows) via `src/content/inject.ts` — a MAIN-world script
+> for Video.js sites flagged `autoCaptions` in `src/shared/sites.ts`. No manual CC needed.
 
 ## Adding another platform
 
@@ -124,18 +124,21 @@ Everything under `extension/` is TypeScript; `dist/` is the only thing Chrome lo
 extension/
   popup.html               Vite entry for the popup
   content.css              overlay styling (plain CSS — injected into the host page)
+  icons/                   icon-{light,dark}.svg sources + rasterised PNG sets
   scripts/build-manifest.ts generates manifest.json from the site registry
   src/
     App.vue                the whole popup: settings cards + download queue
-    main.ts                mounts the popup, mirrors prefers-color-scheme
+    main.ts                applies the stored theme, then mounts the popup
+    components/            ThemeToggle, SettingRow, JobItem
     components/ui/         shadcn-vue components (owned code — edit freely)
-    composables/           chrome.storage settings, server health, job polling
+    composables/           settings, server health, job polling, theme
     styles/globals.css     design tokens (shadcn "new-york", neutral, light + dark)
     background/index.ts    service worker: intercept → translate → TTS relay
     content/index.ts       overlay, cue sync, dub playback
     content/inject.ts      MAIN-world Video.js caption enabler
     shared/sites.ts        the site registry + match helpers
     shared/types.ts        settings, cues, jobs, message unions, SERVER_ORIGIN
+    shared/theme.ts        theme modes, storage keys, toolbar icon paths
 ```
 
 `npm run build` produces `dist/`: Vite bundles the popup, esbuild bundles the
@@ -151,5 +154,14 @@ npx shadcn-vue@latest add dialog      # drops the component into src/components/
 
 The registry's MCP server is configured in `.mcp.json` at the repo root, so Claude Code
 can add and compose components directly (restart Claude Code to pick it up).
-The popup follows the browser's colour scheme — `main.ts` mirrors
-`prefers-color-scheme` onto the `.dark` class shadcn's palette hangs off.
+Theme: the header has a Light / Dark / System switcher (`ThemeToggle.vue` +
+`useTheme.ts`). The choice is stored in `chrome.storage.sync` under `theme`, and
+`main.ts` applies it before mounting so the popup never flashes the wrong
+palette. `System` keeps tracking `prefers-color-scheme` live.
+
+The toolbar icon follows the theme: the mark always sits on that theme's
+`--primary` surface — `#343434` (`oklch(20.5% 0 0)`) in light mode, `#fafafa` in
+dark mode. The popup publishes the resolved theme to `chrome.storage.local`
+(`themeResolved`); the worker picks that up and calls `chrome.action.setIcon`,
+so it also survives a browser restart. Sources: `icons/icon-{light,dark}.svg`,
+rasterised into `icons/{light,dark}/icon{16,32,48,128}.png`.

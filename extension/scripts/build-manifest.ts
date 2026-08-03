@@ -18,14 +18,17 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const unique = (arr: string[]): string[] => [...new Set(arr)];
 
 /**
- * Toolbar / extensions-page icon — the same mark as the popup header
- * (lucide "languages" on the primary surface). Source: icons/icon.svg.
+ * Default icon set — the same mark as the popup header (lucide "languages" on
+ * the --primary surface). Sources: icons/icon-{light,dark}.svg.
+ *
+ * `icons/dark/*` matches DEFAULT_RESOLVED_THEME; the worker swaps the toolbar
+ * icon to `icons/light/*` whenever the popup switches to the light theme.
  */
 const ICONS = {
-  16: 'icons/icon16.png',
-  32: 'icons/icon32.png',
-  48: 'icons/icon48.png',
-  128: 'icons/icon128.png',
+  16: 'icons/dark/icon16.png',
+  32: 'icons/dark/icon32.png',
+  48: 'icons/dark/icon48.png',
+  128: 'icons/dark/icon128.png',
 };
 
 const autoCaptionSites = SUPPORTED_SITES.filter((site) => site.autoCaptions);

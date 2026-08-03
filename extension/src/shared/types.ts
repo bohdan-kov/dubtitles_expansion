@@ -25,6 +25,9 @@ export const DEFAULT_SETTINGS: Settings = {
   dubSpeed: 'auto',
 };
 
+// Popup appearance lives in ./theme.ts — it is popup-only state and never
+// travels to the content script.
+
 // ── Subtitles ────────────────────────────────────────────────────────────────
 
 export interface Cue {

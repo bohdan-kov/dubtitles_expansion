@@ -2,7 +2,7 @@
   "name": "dubtitles-extension",
   "version": "1.0.0",
   "private": true,
-  "description": "Chrome MV3 extension \u2014 Ukrainian subtitles and voice-over for online video courses",
+  "description": "Chrome MV3 extension — Ukrainian subtitles and voice-over for online video courses",
   "type": "module",
   "scripts": {
     "dev": "node scripts/build-manifest.ts && vite build --watch --mode development",

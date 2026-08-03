@@ -15,6 +15,7 @@ import {
 
 import JobItem from '@/components/JobItem.vue';
 import SettingRow from '@/components/SettingRow.vue';
+import ThemeToggle from '@/components/ThemeToggle.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,6 +38,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { useJobs } from '@/composables/useJobs';
 import { useServerHealth } from '@/composables/useServerHealth';
+import { useTheme } from '@/composables/useTheme';
 import { useSettings } from '@/composables/useSettings';
 import type { SubtitleLayout, SubtitleMode } from '@/shared/types';
 import { SERVER_ORIGIN } from '@/shared/types';
@@ -71,6 +73,7 @@ const SPEED_OPTIONS = [
 const { settings, update } = useSettings();
 const { state: health, check: recheckServer } = useServerHealth(SERVER_HEALTH);
 const { jobs, activeCount, hasFinished, clearFinished } = useJobs();
+const { theme, setTheme } = useTheme();
 
 const version = chrome.runtime.getManifest().version;
 const serverLabel = SERVER_ORIGIN.replace(/^https?:\/\//, '').replace('127.0.0.1', 'localhost');
@@ -100,18 +103,22 @@ const jobsListClass = computed(() => (jobs.value.length > 3 ? 'h-[168px]' : ''))
         </p>
       </div>
 
-      <Badge
-        as="button"
-        type="button"
-        :variant="health === 'offline' ? 'destructive' : 'secondary'"
-        class="cursor-pointer px-1.5 py-0 text-[0.65rem] select-none"
-        title="Локальний сервер перекладу — натисніть, щоб перевірити ще раз"
-        @click="recheckServer(true)"
-      >
-        <Loader2 v-if="health === 'checking'" class="size-2.5 animate-spin" />
-        <span v-else-if="health === 'online'" class="size-1.5 rounded-full bg-emerald-500" />
-        {{ healthLabel }}
-      </Badge>
+      <div class="flex shrink-0 items-center gap-1">
+        <Badge
+          as="button"
+          type="button"
+          :variant="health === 'offline' ? 'destructive' : 'secondary'"
+          class="cursor-pointer px-1.5 py-0 text-[0.65rem] select-none"
+          title="Локальний сервер перекладу — натисніть, щоб перевірити ще раз"
+          @click="recheckServer(true)"
+        >
+          <Loader2 v-if="health === 'checking'" class="size-2.5 animate-spin" />
+          <span v-else-if="health === 'online'" class="size-1.5 rounded-full bg-emerald-500" />
+          {{ healthLabel }}
+        </Badge>
+
+        <ThemeToggle :model-value="theme" @update:model-value="setTheme" />
+      </div>
     </header>
 
     <Separator />

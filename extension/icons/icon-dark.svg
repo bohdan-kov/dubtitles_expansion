@@ -1,7 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <!-- Same mark as the popup header: lucide "languages" on the primary surface.
-       #fafafa = oklch(0.985 0 0) (--primary, dark theme),
-       #343434 = oklch(0.205 0 0) (--primary-foreground, dark theme). -->
+  <!-- Toolbar icon for the DARK theme — --primary is oklch(98.5% 0 0) = #fafafa.
+       Same mark as the popup header: lucide "languages" on the --primary surface. -->
   <rect width="128" height="128" rx="28" fill="#fafafa" />
   <g transform="translate(25.6 25.6) scale(3.2)" fill="none" stroke="#343434" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="m5 8 6 6" />
