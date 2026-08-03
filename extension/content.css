@@ -1,16 +1,34 @@
-/* UA Subtitles overlay — appended inside .plyr or .jwplayer */
+/* UA Subtitles overlay — appended inside .plyr / .jwplayer / .video-js
+ *
+ * Styled with the same design tokens as the popup (shadcn "new-york", neutral
+ * base). The overlay always sits on video, so it uses the dark palette. Tokens
+ * are scoped to the overlay so nothing leaks into the host page. */
 
 #ua-subs-overlay {
+  --ua-radius: 0.625rem;
+  --ua-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  --ua-surface: oklch(0.145 0 0 / 0.82);
+  --ua-surface-muted: oklch(0.145 0 0 / 0.55);
+  --ua-border: oklch(1 0 0 / 0.1);
+  --ua-foreground: oklch(0.985 0 0);
+  --ua-muted-foreground: oklch(0.87 0 0);
+  --ua-primary: oklch(0.985 0 0);
+  --ua-primary-foreground: oklch(0.205 0 0);
+  --ua-destructive: oklch(0.577 0.245 27.325 / 0.9);
+
   position: absolute;
-  bottom: 12%;        /* above the control bar (~48px + some breathing room) */
+  bottom: 12%; /* above the control bar (~48px + some breathing room) */
   left: 0;
   right: 0;
   text-align: center;
-  z-index: 10;        /* above video/poster, below .plyr__controls */
+  z-index: 10; /* above video/poster, below .plyr__controls */
   pointer-events: none;
   user-select: none;
   padding: 0 4%;
   box-sizing: border-box;
+  font-family: var(--ua-font);
 }
 
 /* ── 3-level subtitle stack ───────────────────────────────────────────────────
@@ -21,7 +39,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35em;
+  gap: 0.3em;
 }
 
 /* Hide the stack while a status message is showing. */
@@ -38,14 +56,17 @@
 #ua-subs-overlay .ua-subs-line {
   display: inline-block;
   max-width: 90%;
-  font-family: Arial, Helvetica, sans-serif;
-  line-height: 1.4;
-  border-radius: 4px;
-  padding: 2px 9px;
+  line-height: 1.45;
+  border: 1px solid transparent;
+  border-radius: calc(var(--ua-radius) - 2px);
+  padding: 0.14em 0.5em;
   text-shadow: none;
   white-space: pre-wrap;
   word-break: break-word;
-  transition: opacity 0.22s ease, color 0.22s ease, background 0.22s ease;
+  transition:
+    opacity 0.22s ease,
+    color 0.22s ease,
+    background-color 0.22s ease;
 }
 
 /* Empty levels collapse so the layout hugs whatever is present. */
@@ -56,16 +77,20 @@
 /* Current — the actual timecode: prominent, fully opaque. */
 #ua-subs-overlay .ua-subs-current {
   font-size: 1.5vw;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.78);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ua-foreground);
+  background-color: var(--ua-surface);
+  border-color: var(--ua-border);
+  box-shadow: 0 1px 2px 0 oklch(0 0 0 / 0.25);
 }
 
 /* Previous & next — context: smaller, translucent, muted. */
 #ua-subs-overlay .ua-subs-prev,
 #ua-subs-overlay .ua-subs-next {
   font-size: 1.02vw;
-  color: rgba(255, 255, 255, 0.82);
-  background: rgba(0, 0, 0, 0.42);
+  color: var(--ua-muted-foreground);
+  background-color: var(--ua-surface-muted);
 }
 
 /* What already passed is the dimmest. */
@@ -79,20 +104,22 @@
 }
 
 /* ── Status messages (loading / progress / error) ─────────────────────────────
-   Reuse a single line, shown only when not in subtitle mode. */
+   Reuse a single line, shown only when not in subtitle mode. Shaped like a
+   shadcn Alert: bordered surface, muted text. */
 #ua-subs-overlay .ua-subs-text {
   display: none;
   max-width: 85%;
-  font-family: Arial, Helvetica, sans-serif;
   font-size: 1.4vw;
   line-height: 1.45;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.72);
-  border-radius: 3px;
-  padding: 3px 8px;
+  color: var(--ua-foreground);
+  background-color: var(--ua-surface);
+  border: 1px solid var(--ua-border);
+  border-radius: calc(var(--ua-radius) - 2px);
+  padding: 0.2em 0.6em;
   text-shadow: none;
   white-space: pre-wrap;
   word-break: break-word;
+  backdrop-filter: blur(6px);
 }
 
 #ua-subs-overlay:not([data-mode="subtitle"]) .ua-subs-text {
@@ -101,36 +128,43 @@
 
 /* Loading state */
 #ua-subs-overlay[data-mode="loading"] .ua-subs-text {
-  background: rgba(30, 30, 30, 0.85);
-  color: #ccc;
+  color: var(--ua-muted-foreground);
   font-size: 1vw;
-  font-style: italic;
+  font-weight: 500;
 }
 
 /* Error state */
 #ua-subs-overlay[data-mode="error"] .ua-subs-text {
-  background: rgba(180, 30, 30, 0.88);
+  background-color: var(--ua-destructive);
+  border-color: transparent;
   color: #fff;
   font-size: 0.95vw;
   max-width: 95%;
 }
 
 /* ── Voice-over status badge ───────────────────────────────────────────────────
-   A small pill above the subtitles: shows synthesis progress and the
+   A shadcn Badge above the subtitles: synthesis progress and the
    "click to enable audio" hint. Empty → hidden, so it never blocks the text. */
 #ua-subs-overlay .ua-subs-dub {
   position: absolute;
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-bottom: 6px;
-  font-family: Arial, Helvetica, sans-serif;
+  margin-bottom: 0.5em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
   font-size: 0.92vw;
+  font-weight: 500;
+  line-height: 1.4;
   white-space: nowrap;
-  color: #fff;
-  background: rgba(192, 74, 0, 0.9);
-  border-radius: 12px;
-  padding: 2px 10px;
+  color: var(--ua-primary-foreground);
+  background-color: var(--ua-primary);
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  padding: 0.15em 0.7em;
+  box-shadow: 0 1px 2px 0 oklch(0 0 0 / 0.3);
+  backdrop-filter: blur(6px);
 }
 
 #ua-subs-overlay .ua-subs-dub:empty {
@@ -138,8 +172,8 @@
 }
 
 /* Fullscreen: font scales with vw automatically since we use vw units.
-   When the .plyr (our container) goes fullscreen the vw unit refers to
-   the fullscreen viewport — no extra rules needed. */
+   When the player container goes fullscreen the vw unit refers to the
+   fullscreen viewport — no extra rules needed. */
 
 /* Once our UA overlay is live, suppress the platform's own caption rendering
    (e.g. Video.js .vjs-text-track-display) so the original-language text doesn't

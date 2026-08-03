@@ -1,256 +1,28 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="uk">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Course Subtitles UA</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      width: 320px;
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 13px;
-      color: #1a1a1a;
-      background: #fafafa;
-    }
-
-    header {
-      background: #c04a00;
-      color: #fff;
-      padding: 10px 14px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    header span { font-size: 16px; font-weight: bold; }
-    header small { font-size: 11px; opacity: 0.85; }
-
-    .section {
-      padding: 10px 14px;
-      border-bottom: 1px solid #e8e8e8;
-    }
-
-    .row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 5px 0;
-    }
-
-    .label { color: #444; }
-
-    /* Toggle switch */
-    .toggle-wrap { display: flex; align-items: center; gap: 6px; }
-    .toggle {
-      position: relative; width: 36px; height: 20px;
-    }
-    .toggle input { opacity: 0; width: 0; height: 0; }
-    .slider {
-      position: absolute; inset: 0; background: #ccc;
-      border-radius: 20px; cursor: pointer; transition: 0.2s;
-    }
-    .slider::before {
-      content: ''; position: absolute;
-      width: 14px; height: 14px; left: 3px; bottom: 3px;
-      background: #fff; border-radius: 50%; transition: 0.2s;
-    }
-    input:checked + .slider { background: #c04a00; }
-    input:checked + .slider::before { transform: translateX(16px); }
-
-    /* Status indicator */
-    .status-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      display: inline-block; flex-shrink: 0;
-    }
-    .status-dot.ok { background: #27ae60; }
-    .status-dot.error { background: #e74c3c; }
-    .status-dot.checking { background: #f39c12; }
-
-    .status-text { font-size: 11px; color: #666; }
-
-    /* ── Jobs list ─────────────────────────────────────────────────────────── */
-    .jobs-head {
-      padding-bottom: 4px;
-    }
-    .clear-btn {
-      background: none; border: none; cursor: pointer;
-      color: #c04a00; font-size: 11px; padding: 0;
-    }
-    .clear-btn:hover { text-decoration: underline; }
-
-    .jobs-list {
-      display: flex; flex-direction: column; gap: 7px;
-      max-height: 280px; overflow-y: auto;
-      margin-top: 2px;
-    }
-    .jobs-empty {
-      font-size: 11px; color: #aaa; text-align: center;
-      padding: 14px 0;
-    }
-
-    .job {
-      background: #fff; border: 1px solid #ececec;
-      border-radius: 8px; padding: 8px 10px;
-      animation: jobIn 0.18s ease;
-    }
-    @keyframes jobIn { from { opacity: 0; transform: translateY(-3px); } }
-
-    .job-top { display: flex; align-items: center; gap: 7px; }
-    .job-name {
-      flex: 1; font-weight: bold; font-size: 12px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .job-meta {
-      font-size: 11px; font-variant-numeric: tabular-nums;
-      flex-shrink: 0; color: #c04a00; font-weight: bold;
-    }
-    .job.done .job-meta { color: #27ae60; }
-    .job.error .job-meta { color: #e74c3c; }
-
-    .job-sub {
-      font-size: 10px; color: #999; margin-top: 2px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .job.error .job-sub { color: #e74c3c; }
-
-    /* Progress bar (only while translating) */
-    .bar {
-      height: 5px; background: #eee; border-radius: 3px;
-      margin-top: 7px; overflow: hidden;
-    }
-    .bar > i {
-      display: block; height: 100%; width: 0;
-      background: #c04a00; border-radius: 3px;
-      transition: width 0.35s ease;
-    }
-    .job.done .bar, .job.error .bar { display: none; }
-
-    /* Status icon */
-    .job-icon { width: 14px; height: 14px; flex-shrink: 0; position: relative; }
-    .job.translating .job-icon {
-      border: 2px solid #f0d8c8; border-top-color: #c04a00;
-      border-radius: 50%; box-sizing: border-box;
-      animation: spin 0.7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .job.done .job-icon, .job.error .job-icon {
-      border-radius: 50%; color: #fff; font-size: 10px; line-height: 14px;
-      text-align: center; font-weight: bold;
-    }
-    .job.done .job-icon { background: #27ae60; }
-    .job.done .job-icon::after { content: '✓'; }
-    .job.error .job-icon { background: #e74c3c; }
-    .job.error .job-icon::after { content: '!'; }
-
-    /* Mode selector */
-    select {
-      font-size: 12px; border: 1px solid #ddd;
-      border-radius: 4px; padding: 3px 6px; cursor: pointer;
-      background: #fff; max-width: 60%;
-    }
-
-    .row .label { flex-shrink: 0; }
-
-    .hint {
-      font-size: 10px; color: #999; line-height: 1.4;
-      padding: 2px 0 0;
-    }
-
-    footer {
-      padding: 8px 14px;
-      font-size: 10px; color: #999; text-align: center;
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <div>
-      <span>🇺🇦 Course Subtitles UA</span><br>
-      <small>Українські субтитри для відеокурсів</small>
-    </div>
-  </header>
-
-  <div class="section">
-    <div class="row">
-      <span class="label">Субтитри</span>
-      <label class="toggle">
-        <input type="checkbox" id="enabledToggle" checked>
-        <span class="slider"></span>
-      </label>
-    </div>
-
-    <div class="row">
-      <span class="label">Режим</span>
-      <select id="modeSelect">
-        <option value="ua">Лише UA</option>
-        <option value="bilingual">EN + UA</option>
-      </select>
-    </div>
-
-    <div class="row">
-      <span class="label">Відображення</span>
-      <select id="layoutSelect">
-        <option value="triple">3 рівні</option>
-        <option value="single">1 рядок</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="row">
-      <span class="label">Озвучення</span>
-      <label class="toggle">
-        <input type="checkbox" id="dubToggle">
-        <span class="slider"></span>
-      </label>
-    </div>
-
-    <div class="row">
-      <span class="label">Голос</span>
-      <select id="voiceSelect">
-        <option value="uk-UA-OstapNeural">Остап (чол.)</option>
-        <option value="uk-UA-PolinaNeural">Поліна (жін.)</option>
-      </select>
-    </div>
-
-    <div class="row">
-      <span class="label">Швидкість</span>
-      <select id="speedSelect">
-        <option value="auto">Авто (під час репліки)</option>
-        <option value="0.75">0.75×</option>
-        <option value="1">1×</option>
-        <option value="1.25">1.25×</option>
-        <option value="1.5">1.5×</option>
-        <option value="1.75">1.75×</option>
-        <option value="2">2×</option>
-      </select>
-    </div>
-    <div class="hint">Жива нейронна озвучка Microsoft Edge. Оригінал приглушується під час реплік. У режимі «Авто» темп підлаштовується під тривалість репліки.</div>
-  </div>
-
-  <div class="section">
-    <div class="row">
-      <span class="label">Локальний сервер</span>
-      <span class="toggle-wrap">
-        <span class="status-dot checking" id="statusDot"></span>
-        <span class="status-text" id="statusText">перевірка…</span>
-      </span>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="row jobs-head">
-      <span class="label">Завантаження субтитрів</span>
-      <button class="clear-btn" id="clearJobs" hidden>Очистити</button>
-    </div>
-    <div class="jobs-list" id="jobsList">
-      <div class="jobs-empty" id="jobsEmpty">Немає активних завантажень</div>
-    </div>
-  </div>
-
-  <footer>локальний сервер · localhost:17382</footer>
-
-  <script src="popup.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dubtitles</title>
+    <style>
+      /* Paint the popup chrome in the right theme before Vue mounts — the
+         `.dark` class lands in main.ts, and MV3's CSP forbids inline scripts. */
+      html,
+      body {
+        margin: 0;
+        width: 360px;
+        background: oklch(1 0 0);
+      }
+      @media (prefers-color-scheme: dark) {
+        html,
+        body {
+          background: oklch(0.145 0 0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>

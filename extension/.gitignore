@@ -1,0 +1,2 @@
+# Build output — load this folder in chrome://extensions, but don't commit it
+dist/

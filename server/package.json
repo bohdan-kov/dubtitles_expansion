@@ -1,5 +1,5 @@
 {
-  "name": "course-subs-ua-server",
+  "name": "dubtitles-server",
   "version": "1.0.0",
   "description": "Local bridge: translates course subtitles (SRT/VTT) EN→UA",
   "main": "index.js",
