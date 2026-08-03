@@ -22,7 +22,7 @@ const detail = computed(() =>
 
 <template>
   <div
-    class="bg-card animate-in fade-in slide-in-from-top-1 rounded-lg border p-2 duration-200"
+    class="bg-muted/50 animate-in fade-in slide-in-from-top-1 rounded-md p-2 duration-200"
   >
     <div class="flex items-center gap-2">
       <Loader2

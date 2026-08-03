@@ -18,14 +18,6 @@ import SettingRow from '@/components/SettingRow.vue';
 import ThemeToggle from '@/components/ThemeToggle.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Select,
@@ -38,8 +30,8 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { useJobs } from '@/composables/useJobs';
 import { useServerHealth } from '@/composables/useServerHealth';
-import { useTheme } from '@/composables/useTheme';
 import { useSettings } from '@/composables/useSettings';
+import { useTheme } from '@/composables/useTheme';
 import type { SubtitleLayout, SubtitleMode } from '@/shared/types';
 import { SERVER_ORIGIN } from '@/shared/types';
 
@@ -123,174 +115,160 @@ const jobsListClass = computed(() => (jobs.value.length > 3 ? 'h-[168px]' : ''))
 
     <Separator />
 
-    <main class="flex flex-col gap-2.5 p-2.5">
-      <!-- ── Subtitles ─────────────────────────────────────────────────── -->
-      <Card class="gap-2.5 py-3.5">
-        <CardHeader class="px-3.5">
-          <CardTitle class="flex items-center gap-1.5 text-[0.8125rem]">
+    <!-- ── Subtitles ───────────────────────────────────────────────────── -->
+    <section class="space-y-2.5 px-3.5 py-3">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h2 class="flex items-center gap-1.5 text-[0.8125rem] font-semibold">
             <Captions class="text-muted-foreground size-3.5" />
             Субтитри
-          </CardTitle>
-          <CardDescription class="text-[0.7rem]">Переклад поверх плеєра в реальному часі</CardDescription>
-          <CardAction>
-            <Switch
-              :model-value="settings.enabled"
-              aria-label="Увімкнути субтитри"
-              @update:model-value="(v) => update('enabled', v)"
-            />
-          </CardAction>
-        </CardHeader>
+          </h2>
+          <p class="text-muted-foreground text-[0.7rem] leading-snug">
+            Переклад поверх плеєра в реальному часі
+          </p>
+        </div>
+        <Switch
+          :model-value="settings.enabled"
+          aria-label="Увімкнути субтитри"
+          @update:model-value="(v) => update('enabled', v)"
+        />
+      </div>
 
-        <CardContent class="space-y-2.5 px-3.5">
-          <SettingRow label="Режим" description="Мова рядків" :muted="!settings.enabled">
-            <Select
-              :model-value="settings.mode"
-              :disabled="!settings.enabled"
-              @update:model-value="(v) => update('mode', v as SubtitleMode)"
-            >
-              <SelectTrigger size="sm" class="w-[118px] text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="option in MODE_OPTIONS" :key="option.value" :value="option.value">
-                  {{ option.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingRow>
+      <SettingRow label="Режим" description="Мова рядків" :muted="!settings.enabled">
+        <Select
+          :model-value="settings.mode"
+          :disabled="!settings.enabled"
+          @update:model-value="(v) => update('mode', v as SubtitleMode)"
+        >
+          <SelectTrigger size="sm" class="w-[124px] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="option in MODE_OPTIONS" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </SettingRow>
 
-          <SettingRow
-            label="Відображення"
-            description="Скільки реплік видно"
-            :muted="!settings.enabled"
-          >
-            <Select
-              :model-value="settings.layout"
-              :disabled="!settings.enabled"
-              @update:model-value="(v) => update('layout', v as SubtitleLayout)"
-            >
-              <SelectTrigger size="sm" class="w-[124px] text-xs">
-                <Rows3 class="text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  v-for="option in LAYOUT_OPTIONS"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingRow>
-        </CardContent>
-      </Card>
+      <SettingRow
+        label="Відображення"
+        description="Скільки реплік видно"
+        :muted="!settings.enabled"
+      >
+        <Select
+          :model-value="settings.layout"
+          :disabled="!settings.enabled"
+          @update:model-value="(v) => update('layout', v as SubtitleLayout)"
+        >
+          <SelectTrigger size="sm" class="w-[130px] text-xs">
+            <Rows3 class="text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="option in LAYOUT_OPTIONS" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </SettingRow>
+    </section>
 
-      <!-- ── Voice-over ────────────────────────────────────────────────── -->
-      <Card class="gap-2.5 py-3.5">
-        <CardHeader class="px-3.5">
-          <CardTitle class="flex items-center gap-1.5 text-[0.8125rem]">
+    <Separator />
+
+    <!-- ── Voice-over ──────────────────────────────────────────────────── -->
+    <section class="space-y-2.5 px-3.5 py-3">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h2 class="flex items-center gap-1.5 text-[0.8125rem] font-semibold">
             <Volume2 class="text-muted-foreground size-3.5" />
             Озвучення
-          </CardTitle>
-          <CardDescription class="text-[0.7rem]">Жива нейронна озвучка Microsoft Edge</CardDescription>
-          <CardAction>
-            <Switch
-              :model-value="settings.dub"
-              aria-label="Увімкнути озвучення"
-              @update:model-value="(v) => update('dub', v)"
-            />
-          </CardAction>
-        </CardHeader>
-
-        <CardContent class="space-y-2.5 px-3.5">
-          <SettingRow label="Голос" :muted="!settings.dub">
-            <Select
-              :model-value="settings.voice"
-              :disabled="!settings.dub"
-              @update:model-value="(v) => update('voice', v as string)"
-            >
-              <SelectTrigger size="sm" class="w-[146px] text-xs">
-                <MicVocal class="text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  v-for="option in VOICE_OPTIONS"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingRow>
-
-          <SettingRow label="Швидкість" :muted="!settings.dub">
-            <Select
-              :model-value="settings.dubSpeed"
-              :disabled="!settings.dub"
-              @update:model-value="(v) => update('dubSpeed', v as string)"
-            >
-              <SelectTrigger size="sm" class="w-[102px] text-xs">
-                <Gauge class="text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  v-for="option in SPEED_OPTIONS"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </SettingRow>
-
+          </h2>
           <p class="text-muted-foreground text-[0.7rem] leading-snug">
-            Оригінал приглушується під час реплік. У режимі «Авто» темп підлаштовується під
-            тривалість репліки.
+            Нейронна озвучка Microsoft Edge
           </p>
-        </CardContent>
-      </Card>
+        </div>
+        <Switch
+          :model-value="settings.dub"
+          aria-label="Увімкнути озвучення"
+          @update:model-value="(v) => update('dub', v)"
+        />
+      </div>
 
-      <!-- ── Download queue ────────────────────────────────────────────── -->
-      <Card class="gap-2.5 py-3.5">
-        <CardHeader class="px-3.5">
-          <CardTitle class="flex items-center gap-1.5 text-[0.8125rem]">
-            <Download class="text-muted-foreground size-3.5" />
-            Завантаження
-            <Badge v-if="activeCount" variant="secondary" class="px-1.5 py-0 text-[0.65rem]">
-              {{ activeCount }}
-            </Badge>
-          </CardTitle>
-          <CardAction v-if="hasFinished">
-            <Button
-              variant="ghost"
-              size="xs"
-              class="text-muted-foreground hover:text-foreground text-[0.7rem]"
-              @click="clearFinished"
-            >
-              <Trash2 />
-              Очистити
-            </Button>
-          </CardAction>
-        </CardHeader>
+      <SettingRow label="Голос" :muted="!settings.dub">
+        <Select
+          :model-value="settings.voice"
+          :disabled="!settings.dub"
+          @update:model-value="(v) => update('voice', v as string)"
+        >
+          <SelectTrigger size="sm" class="w-[152px] text-xs">
+            <MicVocal class="text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="option in VOICE_OPTIONS" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </SettingRow>
 
-        <CardContent class="px-3.5">
-          <ScrollArea v-if="jobs.length" :class="jobsListClass">
-            <div class="flex flex-col gap-2 pr-2.5">
-              <JobItem v-for="job in jobs" :key="job.url" :job="job" />
-            </div>
-          </ScrollArea>
-          <p v-else class="text-muted-foreground py-5 text-center text-xs">
-            Немає активних завантажень
-          </p>
-        </CardContent>
-      </Card>
-    </main>
+      <SettingRow label="Швидкість" :muted="!settings.dub">
+        <Select
+          :model-value="settings.dubSpeed"
+          :disabled="!settings.dub"
+          @update:model-value="(v) => update('dubSpeed', v as string)"
+        >
+          <SelectTrigger size="sm" class="w-[106px] text-xs">
+            <Gauge class="text-muted-foreground" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="option in SPEED_OPTIONS" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </SettingRow>
+
+      <p class="text-muted-foreground text-[0.7rem] leading-snug">
+        Оригінал приглушується під час реплік. «Авто» підлаштовує темп під тривалість репліки.
+      </p>
+    </section>
+
+    <Separator />
+
+    <!-- ── Download queue ──────────────────────────────────────────────── -->
+    <section class="space-y-2 px-3.5 py-3">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="flex items-center gap-1.5 text-[0.8125rem] font-semibold">
+          <Download class="text-muted-foreground size-3.5" />
+          Завантаження
+          <Badge v-if="activeCount" variant="secondary" class="px-1.5 py-0 text-[0.65rem]">
+            {{ activeCount }}
+          </Badge>
+        </h2>
+        <Button
+          v-if="hasFinished"
+          variant="ghost"
+          size="xs"
+          class="text-muted-foreground hover:text-foreground -mr-1.5 text-[0.7rem]"
+          @click="clearFinished"
+        >
+          <Trash2 />
+          Очистити
+        </Button>
+      </div>
+
+      <ScrollArea v-if="jobs.length" :class="jobsListClass">
+        <div class="flex flex-col gap-1.5 pr-2.5">
+          <JobItem v-for="job in jobs" :key="job.url" :job="job" />
+        </div>
+      </ScrollArea>
+      <p v-else class="text-muted-foreground py-3 text-center text-xs">
+        Немає активних завантажень
+      </p>
+    </section>
 
     <Separator />
 

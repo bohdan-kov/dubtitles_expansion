@@ -39,7 +39,7 @@ const current = computed(
       </Button>
     </DropdownMenuTrigger>
 
-    <DropdownMenuContent align="end" class="min-w-34">
+    <DropdownMenuContent align="end" class="min-w-[132px]">
       <DropdownMenuItem
         v-for="option in OPTIONS"
         :key="option.value"
